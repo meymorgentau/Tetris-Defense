@@ -22,6 +22,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="block.py" />
+    <Compile Include="bullet.py" />
     <Compile Include="constants.py" />
     <Compile Include="field.py" />
     <Compile Include="game.py" />

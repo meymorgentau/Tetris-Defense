@@ -2,7 +2,8 @@ import random
 
 import pygame
 
-from constants import CELL_SIZE, GRID_WIDTH, GRID_HEIGHT
+from constants import CELL_SIZE, GRID_WIDTH
+from constants import GRID_HEIGHT
 
 
 class FallingBlock:
@@ -49,20 +50,17 @@ class FallingBlock:
         self.x = GRID_WIDTH // 2 - 1
         self.y = 0
 
-    def move_down(self):
-        self.y += 1
-
-    def get_cells(self):
+    def get_cells(self, offset_x=0, offset_y=0):
         return [
-            (self.x + cell_x, self.y + cell_y)
+            (
+                self.x + cell_x + offset_x,
+                self.y + cell_y + offset_y
+            )
             for cell_x, cell_y in self.shape
         ]
 
-    def is_at_bottom(self):
-        return any(
-            cell_y >= GRID_HEIGHT - 1
-            for _, cell_y in self.get_cells()
-        )
+    def move_down(self):
+        self.y += 1
 
     def draw(self, screen):
         for cell_x, cell_y in self.get_cells():

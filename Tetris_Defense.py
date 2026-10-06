@@ -13,6 +13,8 @@ from constants import (
 
 from field import GameField
 from block import FallingBlock
+from player import Player
+from bullet import Bullet
 
 
 pygame.init()
@@ -24,11 +26,15 @@ clock = pygame.time.Clock()
 
 game_field = GameField()
 falling_block = FallingBlock()
+player = Player()
+
+bullets = []
 
 running = True
 
 fall_timer = 0
 fall_delay = 500
+
 
 while running:
     delta_time = clock.tick(FPS)
@@ -38,20 +44,49 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    if fall_timer >= fall_delay:
-        falling_block.move_down()
-        fall_timer = 0
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE:
+                bullet_x, bullet_y = player.get_shot_position()
+                bullets.append(Bullet(bullet_x, bullet_y))
 
-        if falling_block.is_at_bottom():
+    # Управление пушкой
+    player.handle_input()
+
+    # Обновление пуль
+    for bullet in bullets[:]:
+        bullet.update()
+
+        if bullet.is_out_of_screen():
+            bullets.remove(bullet)
+
+    # Падение блока
+    if fall_timer >= fall_delay:
+        next_cells = falling_block.get_cells(offset_y=1)
+
+        if game_field.can_place_block(next_cells):
+            falling_block.move_down()
+        else:
+            game_field.lock_block(falling_block.get_cells())
+            game_field.clear_full_lines()
+
             falling_block = FallingBlock()
+
+        fall_timer = 0
 
     screen.fill(BACKGROUND_COLOR)
 
-    # Рисуем игровое поле
+    # Рисуем занятые клетки поля
     for row in range(GRID_HEIGHT):
         for column in range(GRID_WIDTH):
             x = column * CELL_SIZE
             y = row * CELL_SIZE
+
+            if game_field.is_cell_occupied(row, column):
+                pygame.draw.rect(
+                    screen,
+                    (100, 180, 255),
+                    (x, y, CELL_SIZE, CELL_SIZE)
+                )
 
             pygame.draw.rect(
                 screen,
@@ -63,6 +98,14 @@ while running:
     # Рисуем падающий блок
     falling_block.draw(screen)
 
+    # Рисуем пушку
+    player.draw(screen)
+
+    # Рисуем пули
+    for bullet in bullets:
+        bullet.draw(screen)
+
     pygame.display.flip()
+
 
 pygame.quit()

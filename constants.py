@@ -9,6 +9,10 @@ GRID_HEIGHT = 20
 # Размер одной клетки
 CELL_SIZE = 30
 
+# Размер игровой области
+PLAYFIELD_WIDTH = GRID_WIDTH * CELL_SIZE
+PLAYFIELD_HEIGHT = GRID_HEIGHT * CELL_SIZE
+
 # Частота обновления игры
 FPS = 60
 

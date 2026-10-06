@@ -16,3 +16,21 @@ class GameField:
 
     def clear_cell(self, row, column):
         self.grid[row][column] = 0
+
+    def can_place_block(self, cells):
+        for column, row in cells:
+            if column < 0 or column >= GRID_WIDTH:
+                return False
+
+            if row < 0 or row >= GRID_HEIGHT:
+                return False
+
+            if self.is_cell_occupied(row, column):
+                return False
+
+        return True
+
+    def lock_block(self, cells):
+        for column, row in cells:
+            if 0 <= row < GRID_HEIGHT and 0 <= column < GRID_WIDTH:
+                self.occupy_cell(row, column)
