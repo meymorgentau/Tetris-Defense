@@ -21,6 +21,7 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="block.py" />
     <Compile Include="constants.py" />
     <Compile Include="field.py" />
     <Compile Include="game.py" />
