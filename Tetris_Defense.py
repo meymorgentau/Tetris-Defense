@@ -58,6 +58,36 @@ while running:
 
         if bullet.is_out_of_screen():
             bullets.remove(bullet)
+            continue
+
+        # Проверка столкновения пули с кубиками падающего блока
+        bullet_rect = bullet.get_rect()
+
+        for cell in falling_block.get_cells():
+            cell_x, cell_y = cell
+
+            cell_rect = pygame.Rect(
+                cell_x * CELL_SIZE,
+                cell_y * CELL_SIZE,
+                CELL_SIZE,
+                CELL_SIZE
+            )
+
+            if bullet_rect.colliderect(cell_rect):
+                local_cell = (
+                    cell_x - falling_block.x,
+                    cell_y - falling_block.y
+                )
+
+                falling_block.remove_cell(local_cell)
+                bullets.remove(bullet)
+
+                # Если все кубики блока уничтожены,
+                # создаём новый блок
+                if falling_block.is_destroyed():
+                    falling_block = FallingBlock()
+
+                break
 
     # Падение блока
     if fall_timer >= fall_delay:

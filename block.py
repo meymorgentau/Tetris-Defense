@@ -3,7 +3,6 @@ import random
 import pygame
 
 from constants import CELL_SIZE, GRID_WIDTH
-from constants import GRID_HEIGHT
 
 
 class FallingBlock:
@@ -44,7 +43,7 @@ class FallingBlock:
     def __init__(self):
         shape_index = random.randrange(len(self.SHAPES))
 
-        self.shape = self.SHAPES[shape_index]
+        self.shape = self.SHAPES[shape_index].copy()
         self.color = self.COLORS[shape_index]
 
         self.x = GRID_WIDTH // 2 - 1
@@ -58,6 +57,13 @@ class FallingBlock:
             )
             for cell_x, cell_y in self.shape
         ]
+
+    def remove_cell(self, cell):
+        if cell in self.shape:
+            self.shape.remove(cell)
+
+    def is_destroyed(self):
+        return len(self.shape) == 0
 
     def move_down(self):
         self.y += 1
