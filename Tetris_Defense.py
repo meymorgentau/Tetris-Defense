@@ -1,3 +1,4 @@
+
 import pygame
 
 from constants import (
@@ -28,13 +29,59 @@ clock = pygame.time.Clock()
 
 def create_game():
     game_field = GameField()
-    falling_block = FallingBlock()
+
+    active_blocks = [
+        {
+            "block": FallingBlock(),
+            "fall_timer": 0
+        }
+    ]
+
     player = Player()
 
-    return game_field, falling_block, player
+    return game_field, active_blocks, player
 
 
-game_field, falling_block, player = create_game()
+def get_active_cells(active_blocks, excluded_block=None):
+    cells = set()
+
+    for item in active_blocks:
+        block = item["block"]
+
+        if block is excluded_block:
+            continue
+
+        cells.update(block.get_cells())
+
+    return cells
+
+
+def can_spawn_block(new_block, game_field, active_blocks):
+    cells = new_block.get_cells()
+
+    if not game_field.can_spawn_block(cells):
+        return False
+
+    occupied_cells = get_active_cells(active_blocks)
+
+    return not any(cell in occupied_cells for cell in cells)
+
+
+def can_move_block_down(block, game_field, active_blocks):
+    next_cells = block.get_cells(offset_y=1)
+
+    if not game_field.can_place_block(next_cells):
+        return False
+
+    occupied_cells = get_active_cells(
+        active_blocks,
+        excluded_block=block
+    )
+
+    return not any(cell in occupied_cells for cell in next_cells)
+
+
+game_field, active_blocks, player = create_game()
 
 game_ui = GameUI()
 
@@ -44,49 +91,115 @@ score = 0
 cleared_lines = 0
 
 game_over = False
-
 running = True
 
-fall_timer = 0
-fall_delay = 500
+# Настройки скорости падения
+base_fall_delay = 500
+minimum_fall_delay = 250
+
+# Настройки появления новых фигур
+spawn_timer = 0
+base_spawn_delay = 5000
+minimum_spawn_delay = 2500
 
 
 while running:
     delta_time = clock.tick(FPS)
 
     if not game_over:
-        fall_timer += delta_time
+        spawn_timer += delta_time
+
+        for item in active_blocks:
+            item["fall_timer"] += delta_time
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
         if event.type == pygame.KEYDOWN:
+
             # Выстрел
             if event.key == pygame.K_SPACE and not game_over:
                 bullet_x, bullet_y = player.get_shot_position()
-                bullets.append(Bullet(bullet_x, bullet_y))
+
+                bullets.append(
+                    Bullet(bullet_x, bullet_y)
+                )
 
             # Перезапуск игры
             if event.key == pygame.K_r and game_over:
-                game_field, falling_block, player = create_game()
+                game_field, active_blocks, player = create_game()
 
                 bullets.clear()
 
                 score = 0
                 cleared_lines = 0
 
-                fall_timer = 0
-
+                spawn_timer = 0
                 game_over = False
 
-    # Игровая логика работает только до проигрыша
     if not game_over:
 
         # Управление пушкой
         player.handle_input()
 
-        # Обновление пуль
+        # Постепенное ускорение падения
+        fall_delay = max(
+            minimum_fall_delay,
+            base_fall_delay - (score // 200) * 25
+        )
+
+        # Постепенное увеличение частоты появления фигур
+        spawn_delay = max(
+            minimum_spawn_delay,
+            base_spawn_delay - (score // 300) * 500
+        )
+
+        # Создание новых фигур по таймеру
+        if spawn_timer >= spawn_delay:
+            new_block = FallingBlock()
+
+            if can_spawn_block(
+                new_block,
+                game_field,
+                active_blocks
+            ):
+                active_blocks.append(
+                    {
+                        "block": new_block,
+                        "fall_timer": 0
+                    }
+                )
+
+            else:
+                # Пробуем другие случайные фигуры и позиции
+                spawned = False
+
+                for _ in range(20):
+                    new_block = FallingBlock()
+
+                    if can_spawn_block(
+                        new_block,
+                        game_field,
+                        active_blocks
+                    ):
+                        active_blocks.append(
+                            {
+                                "block": new_block,
+                                "fall_timer": 0
+                            }
+                        )
+
+                        spawned = True
+                        break
+
+                if not spawned:
+                    game_over = True
+                    bullets.clear()
+
+            spawn_timer = 0
+
+        # Обновление пуль и проверка попаданий
         for bullet in bullets[:]:
             bullet.update()
 
@@ -94,78 +207,90 @@ while running:
                 bullets.remove(bullet)
                 continue
 
-            # Проверка столкновения пули с кубиками падающего блока
             bullet_rect = bullet.get_rect()
+            hit = False
 
-            for cell in falling_block.get_cells():
-                cell_x, cell_y = cell
+            for item in active_blocks[:]:
+                block = item["block"]
 
-                cell_rect = pygame.Rect(
-                    cell_x * CELL_SIZE,
-                    cell_y * CELL_SIZE,
-                    CELL_SIZE,
-                    CELL_SIZE
-                )
-
-                if bullet_rect.colliderect(cell_rect):
-                    local_cell = (
-                        cell_x - falling_block.x,
-                        cell_y - falling_block.y
+                for cell_x, cell_y in block.get_cells():
+                    cell_rect = pygame.Rect(
+                        cell_x * CELL_SIZE,
+                        cell_y * CELL_SIZE,
+                        CELL_SIZE,
+                        CELL_SIZE
                     )
 
-                    falling_block.remove_cell(local_cell)
+                    if bullet_rect.colliderect(cell_rect):
+                        local_cell = (
+                            cell_x - block.x,
+                            cell_y - block.y
+                        )
 
-                    bullets.remove(bullet)
+                        block.remove_cell(local_cell)
 
-                    # Очки за уничтожение кубика
-                    score += 10
+                        bullets.remove(bullet)
 
-                    # Если уничтожен весь блок
-                    if falling_block.is_destroyed():
-                        score += 20
-                        falling_block = FallingBlock()
+                        # Очки за уничтожение кубика
+                        score += 10
 
+                        # Если уничтожена вся фигура
+                        if block.is_destroyed():
+                            score += 20
+                            active_blocks.remove(item)
+
+                        hit = True
+                        break
+
+                if hit:
                     break
 
-        # Падение блока
-        if fall_timer >= fall_delay:
-            next_cells = falling_block.get_cells(offset_y=1)
+        # Независимое падение каждой фигуры
+        for item in active_blocks[:]:
+            block = item["block"]
 
-            if game_field.can_place_block(next_cells):
-                falling_block.move_down()
+            if item["fall_timer"] < fall_delay:
+                continue
+
+            if can_move_block_down(
+                block,
+                game_field,
+                active_blocks
+            ):
+                block.move_down()
 
             else:
-                # Закрепляем блок на поле
+                # Закрепление кубиков на поле
                 game_field.lock_block(
-                    falling_block.get_cells()
+                    block.get_cells()
                 )
 
-                # Проверяем заполненные линии
+                active_blocks.remove(item)
+
+                # Проверка заполненных линий
                 lines = game_field.clear_full_lines()
 
                 cleared_lines += lines
-
-                # Очки за линии
                 score += lines * 100
 
-                # Создаём новый блок
-                new_block = FallingBlock()
+            item["fall_timer"] = 0
 
-                # Проверяем возможность его появления
-                if game_field.can_spawn_block(
-                    new_block.get_cells()
-                ):
-                    falling_block = new_block
-                else:
-                    game_over = True
+        # Проверка возможности продолжения игры
+        if not active_blocks:
+            test_block = FallingBlock()
 
-                    bullets.clear()
+            if not can_spawn_block(
+                test_block,
+                game_field,
+                active_blocks
+            ):
+                game_over = True
+                bullets.clear()
 
-            fall_timer = 0
-
+    # Отрисовка фона
     screen.fill(BACKGROUND_COLOR)
 
-    # Игровое поле
+    # Игровое поле и закреплённые кубики
     for row in range(GRID_HEIGHT):
         for column in range(GRID_WIDTH):
             x = column * CELL_SIZE
@@ -185,9 +310,9 @@ while running:
                 1
             )
 
-    # Падающий блок
-    if not game_over:
-        falling_block.draw(screen)
+    # Отрисовка всех падающих фигур
+    for item in active_blocks:
+        item["block"].draw(screen)
 
     # Пушка
     player.draw(screen)
