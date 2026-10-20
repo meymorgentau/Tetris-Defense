@@ -24,6 +24,7 @@
     <Compile Include="block.py" />
     <Compile Include="bullet.py" />
     <Compile Include="constants.py" />
+    <Compile Include="defense_logger.py" />
     <Compile Include="field.py" />
     <Compile Include="game.py" />
     <Compile Include="player.py" />

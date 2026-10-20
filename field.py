@@ -1,3 +1,4 @@
+
 from constants import GRID_WIDTH, GRID_HEIGHT
 
 
@@ -37,12 +38,15 @@ class GameField:
 
     def clear_full_lines(self):
         remaining_rows = []
+        cleared_row_indices = []
 
-        for row in self.grid:
-            if not all(cell == 1 for cell in row):
+        for row_index, row in enumerate(self.grid):
+            if all(cell == 1 for cell in row):
+                cleared_row_indices.append(row_index)
+            else:
                 remaining_rows.append(row)
 
-        cleared_lines = GRID_HEIGHT - len(remaining_rows)
+        cleared_lines = len(cleared_row_indices)
 
         while len(remaining_rows) < GRID_HEIGHT:
             remaining_rows.insert(
@@ -52,7 +56,7 @@ class GameField:
 
         self.grid = remaining_rows
 
-        return cleared_lines
+        return cleared_lines, cleared_row_indices
 
     def can_spawn_block(self, cells):
         for column, row in cells:

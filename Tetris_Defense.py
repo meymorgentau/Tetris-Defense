@@ -17,6 +17,7 @@ from block import FallingBlock
 from player import Player
 from bullet import Bullet
 from ui import GameUI
+from defense_logger import log_cleared_line
 
 
 pygame.init()
@@ -267,8 +268,12 @@ while running:
 
                 active_blocks.remove(item)
 
-                # ѕроверка заполненных линий
-                lines = game_field.clear_full_lines()
+                # ѕроверка заполненных линий и получение их индексов
+                lines, row_indices = game_field.clear_full_lines()
+
+                # «апись каждой уничтоженной строки в журнал
+                for row_index in row_indices:
+                    log_cleared_line(row_index)
 
                 cleared_lines += lines
                 score += lines * 100
