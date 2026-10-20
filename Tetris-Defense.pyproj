@@ -27,8 +27,12 @@
     <Compile Include="field.py" />
     <Compile Include="game.py" />
     <Compile Include="player.py" />
+    <Compile Include="shapes_loader.py" />
     <Compile Include="Tetris_Defense.py" />
     <Compile Include="ui.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="shapes.cfg" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

@@ -1,104 +1,44 @@
+
 import random
 
 import pygame
 
 from constants import CELL_SIZE, GRID_WIDTH
+from shapes_loader import load_shapes
 
 
 class FallingBlock:
-    SHAPES = [
-        # T
-        [
-            (0, 0),
-            (1, 0),
-            (2, 0),
-            (1, 1)
-        ],
+    SHAPES = load_shapes()
 
-        # Square
-        [
-            (0, 0),
-            (1, 0),
-            (0, 1),
-            (1, 1)
-        ],
-
-        # I horizontal
-        [
-            (0, 0),
-            (1, 0),
-            (2, 0),
-            (3, 0)
-        ],
-
-        # I vertical
-        [
-            (0, 0),
-            (0, 1),
-            (0, 2),
-            (0, 3)
-        ],
-
-        # I short horizontal
-        [
-            (0, 0),
-            (1, 0)
-        ],
-
-        # I short vertical
-        [
-            (0, 0),
-            (0, 1)
-        ],
-
-        # L
-        [
-            (0, 0),
-            (0, 1),
-            (0, 2),
-            (1, 2)
-        ],
-
-        # Reverse L
-        [
-            (1, 0),
-            (1, 1),
-            (1, 2),
-            (0, 2)
-        ],
-
-        # Small L
-        [
-            (0, 0),
-            (0, 1),
-            (1, 1)
-        ]
-    ]
-
-    COLORS = [
-        (80, 180, 255),
-        (255, 220, 80),
-        (180, 100, 255),
-        (100, 230, 140),
-        (255, 120, 100),
-        (120, 220, 220),
-        (220, 140, 255),
-        (255, 170, 80),
-        (140, 200, 120)
-    ]
+    COLORS = {
+        "T": (80, 180, 255),
+        "Square": (255, 220, 80),
+        "I_Horizontal": (180, 100, 255),
+        "I_Vertical": (100, 230, 140),
+        "Short_I_Horizontal": (255, 120, 100),
+        "Short_I_Vertical": (120, 220, 220),
+        "L": (220, 140, 255),
+        "Reverse_L": (255, 170, 80),
+        "Small_L": (140, 200, 120)
+    }
 
     def __init__(self):
-        shape_index = random.randrange(len(self.SHAPES))
+        # Выбираем случайную фигуру из конфигурационного файла.
+        self.shape_name = random.choice(list(self.SHAPES.keys()))
+        self.shape = self.SHAPES[self.shape_name].copy()
 
-        self.shape = self.SHAPES[shape_index].copy()
-        self.color = self.COLORS[shape_index]
+        # Назначаем цвет в зависимости от типа фигуры.
+        self.color = self.COLORS.get(
+            self.shape_name,
+            (200, 200, 200)
+        )
 
-        # Определяем ширину выбранной фигуры
+        # Определяем ширину выбранной фигуры.
         shape_width = max(
             cell_x for cell_x, cell_y in self.shape
         ) + 1
 
-        # Случайная позиция по всей ширине игрового поля
+        # Выбираем случайную позицию по ширине игрового поля.
         self.x = random.randint(
             0,
             GRID_WIDTH - shape_width
