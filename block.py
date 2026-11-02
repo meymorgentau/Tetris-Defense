@@ -19,12 +19,24 @@ class FallingBlock:
         "Short_I_Vertical": (120, 220, 220),
         "L": (220, 140, 255),
         "Reverse_L": (255, 170, 80),
-        "Small_L": (140, 200, 120)
+        "Small_L": (140, 200, 120),
+        "O": (255, 150, 200)
     }
 
+    # Название первой фигуры.
+    first_shape_name = "O"
+    first_shape_used = False
+
     def __init__(self):
-        # Выбираем случайную фигуру из конфигурационного файла.
-        self.shape_name = random.choice(list(self.SHAPES.keys()))
+        # Первая O
+        if not FallingBlock.first_shape_used:
+            self.shape_name = FallingBlock.first_shape_name
+            FallingBlock.first_shape_used = True
+        else:
+            self.shape_name = random.choice(
+                list(self.SHAPES.keys())
+            )
+
         self.shape = self.SHAPES[self.shape_name].copy()
 
         # Назначаем цвет в зависимости от типа фигуры.
