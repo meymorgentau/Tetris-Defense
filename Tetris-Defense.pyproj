@@ -28,12 +28,33 @@
     <Compile Include="field.py" />
     <Compile Include="game.py" />
     <Compile Include="player.py" />
+    <Compile Include="py_bot\analytics.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="py_bot\bot.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="py_bot\config.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="py_bot\keyboards.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="py_bot\session.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="shapes_loader.py" />
     <Compile Include="Tetris_Defense.py" />
     <Compile Include="ui.py" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="py_bot\.env" />
+    <Content Include="py_bot\requirements.txt" />
     <Content Include="shapes.cfg" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="py_bot\" />
+    <Folder Include="py_bot\sessions\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
