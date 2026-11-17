@@ -3,6 +3,7 @@ import asyncio
 import logging
 import os
 import tempfile
+from datetime import datetime
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandStart
@@ -13,7 +14,11 @@ from aiogram.fsm.context import FSMContext
 from config import BOT_TOKEN
 from keyboards import get_main_keyboard
 
+from session import load_session, save_session
+
 from analytics import (
+    load_shapes,
+    analyze_log,
     get_top_players,
     get_player_statistics,
     get_achievements,
@@ -38,6 +43,28 @@ dp = Dispatcher()
 # Состояния загрузки файлов
 class UploadStates(StatesGroup):
     waiting_for_file = State()
+
+
+def update_user_session(user, action):
+    """Обновляет JSON-сессию пользователя."""
+
+    session = load_session(user.id)
+
+    session["user_id"] = user.id
+    session["player_name"] = user.full_name
+    session["username"] = user.username
+    session["last_action"] = action
+    session["last_seen"] = datetime.now().isoformat(
+        timespec="seconds"
+    )
+
+    save_session(user.id, session)
+
+    logging.info(
+        "Сессия пользователя %s обновлена. Действие: %s",
+        user.id,
+        action
+    )
 
 
 def format_top_players():
@@ -66,21 +93,24 @@ def format_top_players():
 
 
 def format_statistics():
-    """Формирует текст общей статистики."""
+    """Формирует общую статистику игры."""
 
     stats = get_player_statistics()
+    total_score = stats.get("total_score", 0)
 
-    total_score = stats.get(
-        "total_score",
-        stats.get("total_ score", 0)
-    )
+    shapes = load_shapes()
+    log_data = analyze_log()
 
     return (
         "📊 Общая статистика\n\n"
-        f"👥 Игроков: {stats['players_count']}\n"
-        f"🎮 Всего игр: {stats['total_games']}\n"
-        f"💥 Уничтожено линий: {stats['total_lines']}\n"
-        f"⭐ Всего очков: {total_score}"
+        "👥 Статистика игроков\n"
+        f"Игроков: {stats['players_count']}\n"
+        f"Всего игр: {stats['total_games']}\n"
+        f"Линий по таблице результатов: {stats['total_lines']}\n"
+        f"Всего очков: {total_score}\n\n"
+        "🎮 Данные игрового проекта\n"
+        f"🧩 Загружено фигур: {len(shapes)}\n"
+        f"📋 Событий в журнале: {log_data['total_lines']}"
     )
 
 
@@ -118,6 +148,8 @@ def format_achievements():
 
 @dp.message(CommandStart())
 async def start_command(message: Message):
+    update_user_session(message.from_user, "start")
+
     await message.answer(
         "🛡️ Добро пожаловать в «Оборонный Штаб»!\n\n"
         "Я — аналитический бот игры «Тетрис-Защита».\n"
@@ -130,6 +162,8 @@ async def start_command(message: Message):
 
 @dp.message(Command("help"))
 async def help_command(message: Message):
+    update_user_session(message.from_user, "help")
+
     await message.answer(
         "📋 Список доступных команд:\n\n"
         "/start — запуск бота\n"
@@ -144,6 +178,8 @@ async def help_command(message: Message):
 
 @dp.message(Command("top"))
 async def top_command(message: Message):
+    update_user_session(message.from_user, "top")
+
     await message.answer(
         format_top_players(),
         reply_markup=get_main_keyboard()
@@ -152,6 +188,8 @@ async def top_command(message: Message):
 
 @dp.message(Command("stats"))
 async def stats_command(message: Message):
+    update_user_session(message.from_user, "stats")
+
     await message.answer(
         format_statistics(),
         reply_markup=get_main_keyboard()
@@ -160,6 +198,8 @@ async def stats_command(message: Message):
 
 @dp.message(Command("achievements"))
 async def achievements_command(message: Message):
+    update_user_session(message.from_user, "achievements")
+
     await message.answer(
         format_achievements(),
         reply_markup=get_main_keyboard()
@@ -169,6 +209,8 @@ async def achievements_command(message: Message):
 # Начало загрузки CSV
 @dp.message(Command("upload"))
 async def upload_command(message: Message, state: FSMContext):
+    update_user_session(message.from_user, "upload")
+
     await state.set_state(UploadStates.waiting_for_file)
 
     await message.answer(
@@ -182,6 +224,8 @@ async def upload_command(message: Message, state: FSMContext):
 
 @dp.callback_query(F.data == "upload")
 async def upload_callback(callback: CallbackQuery, state: FSMContext):
+    update_user_session(callback.from_user, "upload")
+
     await state.set_state(UploadStates.waiting_for_file)
 
     await callback.message.answer(
@@ -198,6 +242,8 @@ async def upload_callback(callback: CallbackQuery, state: FSMContext):
 # Отмена загрузки
 @dp.message(Command("cancel"), UploadStates.waiting_for_file)
 async def cancel_upload(message: Message, state: FSMContext):
+    update_user_session(message.from_user, "cancel_upload")
+
     await state.clear()
 
     await message.answer(
@@ -209,6 +255,7 @@ async def cancel_upload(message: Message, state: FSMContext):
 # Приём CSV-файла
 @dp.message(UploadStates.waiting_for_file, F.document)
 async def receive_csv(message: Message, state: FSMContext):
+    update_user_session(message.from_user, "receive_csv")
 
     document = message.document
 
@@ -274,6 +321,8 @@ async def receive_csv(message: Message, state: FSMContext):
 # Если пользователь отправил не документ
 @dp.message(UploadStates.waiting_for_file)
 async def invalid_upload(message: Message):
+    update_user_session(message.from_user, "invalid_upload")
+
     await message.answer(
         "⚠️ Я ожидаю CSV-файл.\n"
         "Отправь документ с расширением .csv "
@@ -284,6 +333,8 @@ async def invalid_upload(message: Message):
 # Кнопки главного меню
 @dp.callback_query(F.data == "top")
 async def top_callback(callback: CallbackQuery):
+    update_user_session(callback.from_user, "top")
+
     await callback.message.edit_text(
         format_top_players(),
         reply_markup=get_main_keyboard()
@@ -293,6 +344,8 @@ async def top_callback(callback: CallbackQuery):
 
 @dp.callback_query(F.data == "stats")
 async def stats_callback(callback: CallbackQuery):
+    update_user_session(callback.from_user, "stats")
+
     await callback.message.edit_text(
         format_statistics(),
         reply_markup=get_main_keyboard()
@@ -302,6 +355,8 @@ async def stats_callback(callback: CallbackQuery):
 
 @dp.callback_query(F.data == "achievements")
 async def achievements_callback(callback: CallbackQuery):
+    update_user_session(callback.from_user, "achievements")
+
     await callback.message.edit_text(
         format_achievements(),
         reply_markup=get_main_keyboard()
@@ -311,6 +366,8 @@ async def achievements_callback(callback: CallbackQuery):
 
 @dp.callback_query(F.data == "help")
 async def help_callback(callback: CallbackQuery):
+    update_user_session(callback.from_user, "help")
+
     await callback.message.edit_text(
         "📋 Список доступных команд:\n\n"
         "/start — запуск бота\n"
